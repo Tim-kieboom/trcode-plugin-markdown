@@ -1,6 +1,6 @@
 id = "markdown"
 name = "Markdown Preview"
-version = "0.1.0"
+version = "0.1.1"
 abi = "1.5"
 wasm = "markdown.wasm"
 # The saved text of the markdown files you open, and opening the files its links lead to.

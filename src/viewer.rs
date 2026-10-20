@@ -10,6 +10,10 @@ use crate::render::{Doc, Line, render, slot};
 /// a larger file is told as too large, which costs nothing. (The editor sends up to 1 MB.)
 pub const MAX_PREVIEW_BYTES: usize = 128 * 1024;
 
+/// How many lines are sent to the editor at once, at the least: the ones around the line
+/// the reader is on, so that a key costs the window and not the whole document.
+const MIN_WINDOW: usize = 60;
+
 /// The width assumed until the editor says how wide the pane is.
 const DEFAULT_WIDTH: usize = 80;
 const DEFAULT_HEIGHT: usize = 24;
@@ -82,7 +86,9 @@ impl Plugin for Viewer {
             }
             ToPlugin::Action { action } => self.action(&action, &mut out),
             ToPlugin::Click { row } => {
-                self.selected = row.min(self.doc.lines.len().saturating_sub(1));
+                // A row of the window sent, which starts where it did for this line.
+                let (top, _) = self.window();
+                self.selected = (top + row).min(self.doc.lines.len().saturating_sub(1));
                 self.open_link_here(&mut out);
             }
             ToPlugin::Refused { reason, .. } => {
@@ -232,6 +238,18 @@ impl Viewer {
         }
     }
 
+    /// Where the lines sent to the editor start and how many there are: a window around
+    /// the line the reader is on (three screens, at least `MIN_WINDOW` lines).
+    fn window(&self) -> (usize, usize) {
+        let size = (self.height * 3).max(MIN_WINDOW);
+        let total = self.doc.lines.len();
+        let top = self
+            .selected
+            .saturating_sub(size / 2)
+            .min(total.saturating_sub(size));
+        (top, size.min(total - top))
+    }
+
     fn view(&self) -> WireView {
         let title = match (&self.path, self.in_front, self.modified) {
             (Some(path), true, true) => format!("{path} · changes not saved are not shown"),
@@ -259,9 +277,16 @@ impl Viewer {
                 "Open a markdown file: it is shown here when it is saved.",
                 HINT_SLOT,
             )],
-            (None, false) => self.doc.lines.iter().map(wire_line).collect(),
+            (None, false) => {
+                let (top, len) = self.window();
+                self.doc.lines[top..top + len]
+                    .iter()
+                    .map(wire_line)
+                    .collect()
+            }
         };
-        let selected = (!self.doc.lines.is_empty()).then_some(self.selected);
+        let selected = (!self.doc.lines.is_empty() && self.notice.is_none())
+            .then(|| self.selected - self.window().0);
         WireView::Column {
             parts: vec![
                 WireView::lines([

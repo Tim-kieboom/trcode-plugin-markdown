@@ -497,3 +497,43 @@ fn every_message_is_answered_with_a_view() {
         assert!(matches!(pane.said.last(), Some(FromPlugin::SetView { .. })));
     }
 }
+
+#[test]
+fn only_a_window_of_a_long_document_is_sent_and_a_click_on_it_is_the_right_line() {
+    let mut pane = Pane::new();
+    pane.hear(ToPlugin::Size {
+        width: 40,
+        height: 10,
+    });
+    let text: String = (0..500).map(|n| format!("line {n}\n\n")).collect();
+    pane.file("long.md", &text);
+    let (_, rows, selected) = pane.view();
+    assert!(rows.len() <= 60, "{}", rows.len());
+    assert_eq!(selected, Some(0));
+
+    // Far down, the window is around the line and the selection is in it.
+    for _ in 0..3 {
+        pane.act("page_down");
+    }
+    pane.act("bottom");
+    let (_, rows, selected) = pane.view();
+    assert!(rows.len() <= 60);
+    assert_eq!(rows[selected.unwrap()], "line 499");
+
+    // A click on a row of the window is that line of the document.
+    pane.act("top");
+    for _ in 0..100 {
+        pane.act("down");
+    }
+    let (_, rows, selected) = pane.view();
+    let at = selected.unwrap();
+    let row = rows.len() - 2;
+    pane.hear(ToPlugin::Click { row });
+    let (_, after, now) = pane.view();
+    assert_eq!(
+        after[now.unwrap()],
+        rows[row],
+        "the clicked line is the one selected"
+    );
+    let _ = at;
+}
