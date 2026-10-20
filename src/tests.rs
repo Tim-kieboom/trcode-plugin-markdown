@@ -537,3 +537,63 @@ fn only_a_window_of_a_long_document_is_sent_and_a_click_on_it_is_the_right_line(
     );
     let _ = at;
 }
+
+fn long(pane: &mut Pane) {
+    pane.hear(ToPlugin::Size {
+        width: 40,
+        height: 10,
+    });
+    let text: String = (0..100).map(|n| format!("line {n}\n\n")).collect();
+    pane.file("long.md", &text);
+}
+
+#[test]
+fn the_wheel_moves_three_lines_a_notch_and_stops_at_the_ends() {
+    let mut pane = Pane::new();
+    long(&mut pane);
+    pane.hear(ToPlugin::Scroll { lines: 3 });
+    assert_eq!(pane.view().2, Some(3));
+    pane.hear(ToPlugin::Scroll { lines: 3 });
+    assert_eq!(pane.view().2, Some(6));
+    pane.hear(ToPlugin::Scroll { lines: -3 });
+    pane.hear(ToPlugin::Scroll { lines: -3 });
+    pane.hear(ToPlugin::Scroll { lines: -3 });
+    assert_eq!(pane.view().2, Some(0), "not above the first line");
+    pane.hear(ToPlugin::Scroll { lines: 30_000 });
+    let (_, rows, selected) = pane.view();
+    assert_eq!(rows[selected.unwrap()], "line 99", "not past the last");
+}
+
+#[test]
+fn j_k_and_half_pages_move_like_the_arrows_and_pages() {
+    let mut pane = Pane::new();
+    long(&mut pane);
+    pane.act("line_down");
+    assert_eq!(pane.view().2, Some(1));
+    pane.act("line_up");
+    assert_eq!(pane.view().2, Some(0));
+    // A pane of 10 rows: a page is 8 lines, a half page 4.
+    pane.act("half_page_down");
+    assert_eq!(pane.view().2, Some(4));
+    pane.act("half_page_up");
+    assert_eq!(pane.view().2, Some(0));
+    pane.act("page_down");
+    assert_eq!(pane.view().2, Some(8));
+}
+
+#[test]
+fn a_document_longer_than_the_pane_says_how_far_down_the_reader_is() {
+    let mut pane = Pane::new();
+    long(&mut pane);
+    assert_eq!(pane.view().0[0], "long.md · 0%");
+    pane.act("bottom");
+    assert_eq!(pane.view().0[0], "long.md · 100%");
+    pane.act("top");
+    pane.hear(ToPlugin::Scroll { lines: 99 });
+    assert_eq!(pane.view().0[0], "long.md · 50%");
+
+    // A short one does not say.
+    let mut short = Pane::new();
+    short.file("a.md", "# Hi\n\ntext");
+    assert_eq!(short.view().0[0], "a.md");
+}

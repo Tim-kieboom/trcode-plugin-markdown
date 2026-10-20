@@ -85,6 +85,11 @@ impl Plugin for Viewer {
                 self.height = height.max(1);
             }
             ToPlugin::Action { action } => self.action(&action, &mut out),
+            ToPlugin::Scroll { lines } => {
+                // The wheel moves the line the reader is on, which is what the view follows.
+                self.problem = None;
+                self.move_by(isize::from(lines));
+            }
             ToPlugin::Click { row } => {
                 // A row of the window sent, which starts where it did for this line.
                 let (top, _) = self.window();
@@ -161,10 +166,12 @@ impl Viewer {
         let page = self.height.saturating_sub(2).max(1);
         self.problem = None;
         match action {
-            "up" => self.selected = self.selected.saturating_sub(1),
-            "down" => self.selected = (self.selected + 1).min(last),
-            "page_up" => self.selected = self.selected.saturating_sub(page),
-            "page_down" => self.selected = (self.selected + page).min(last),
+            "up" | "line_up" => self.move_by(-1),
+            "down" | "line_down" => self.move_by(1),
+            "page_up" => self.move_by(-(page as isize)),
+            "page_down" => self.move_by(page as isize),
+            "half_page_up" => self.move_by(-((page / 2).max(1) as isize)),
+            "half_page_down" => self.move_by((page / 2).max(1) as isize),
             "top" => self.selected = 0,
             "bottom" => self.selected = last,
             "next_link" => {
@@ -180,6 +187,18 @@ impl Viewer {
             "open_link" => self.open_link_here(out),
             _ => {}
         }
+    }
+
+    /// Moves the line the reader is on by `lines`, to the ends at most.
+    fn move_by(&mut self, lines: isize) {
+        let last = self.doc.lines.len().saturating_sub(1);
+        self.selected = self.selected.saturating_add_signed(lines).min(last);
+    }
+
+    /// How far down the document the reader is, for a document longer than the pane.
+    fn position(&self) -> Option<usize> {
+        let last = self.doc.lines.len().saturating_sub(1);
+        (self.notice.is_none() && last >= self.height).then(|| self.selected * 100 / last)
     }
 
     fn link_after(&self, line: usize) -> Option<usize> {
@@ -256,6 +275,10 @@ impl Viewer {
             (Some(path), true, false) => path.clone(),
             (Some(path), false, _) => format!("{path} · not the file in front"),
             (None, ..) => "Markdown preview".to_owned(),
+        };
+        let title = match self.position() {
+            Some(percent) => format!("{title} · {percent}%"),
+            None => title,
         };
         let title_slot = match self.modified && self.in_front {
             true => WARNING_SLOT,

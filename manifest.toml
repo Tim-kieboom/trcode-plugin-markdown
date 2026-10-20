@@ -1,6 +1,6 @@
 id = "markdown"
 name = "Markdown Preview"
-version = "0.1.1"
+version = "0.1.2"
 abi = "1.5"
 wasm = "markdown.wasm"
 # The saved text of the markdown files you open, and opening the files its links lead to.
@@ -53,3 +53,23 @@ keys = "shift+tab"
 id = "open_link"
 title = "Open Link"
 keys = "enter"
+
+[[action]]
+id = "line_up"
+title = "Line Up"
+keys = "k"
+
+[[action]]
+id = "line_down"
+title = "Line Down"
+keys = "j"
+
+[[action]]
+id = "half_page_up"
+title = "Half Page Up"
+keys = "ctrl+u"
+
+[[action]]
+id = "half_page_down"
+title = "Half Page Down"
+keys = "ctrl+d"

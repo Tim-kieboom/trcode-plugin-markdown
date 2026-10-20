@@ -126,7 +126,7 @@ dependencies = [
 [[package]]
 name = "trcode-plugin-api"
 version = "0.8.0"
-source = "git+https://github.com/Tim-kieboom/TerminalCode?tag=plugin-api-1.5#b7da5890689f748ae369e3dee3e269e3aee310e1"
+source = "git+https://github.com/Tim-kieboom/TerminalCode?tag=plugin-api-1.5.1#46db8f35c3a80329639d047fdbab7b872dbd7ec8"
 dependencies = [
  "serde",
  "serde_json",
@@ -135,7 +135,7 @@ dependencies = [
 
 [[package]]
 name = "trcode-plugin-markdown"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "pulldown-cmark",
  "trcode-plugin-api",
