@@ -7,7 +7,7 @@ pane, and a link to another file opens that file in the editor.
 
 ## Installing
 
-In TerminalCode (0.9 or later: it needs plugin API 1.5) open "Plugins: Manage", choose
+In a TerminalCode that has plugin API 1.5 (the next release after 0.8.0) open "Plugins: Manage", choose
 Markdown Preview and press `enter`. You are asked what it may do (see the text of `.md` and
 `.markdown` files you open, as saved, and open the files its links lead to; it runs on a thread
 of its own) and where its view goes: choose the **side pane**, which sits right of the editor.
