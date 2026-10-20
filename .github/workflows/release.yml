@@ -1,0 +1,43 @@
+name: Release
+
+# Push a tag `vX.Y.Z` (the same as `version` in manifest.toml). The release gets the
+# module, the manifest and description.md, and the summary has the entry to paste in
+# index.json of https://github.com/Tim-kieboom/trcode-plugins.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup target add wasm32-unknown-unknown
+      - run: cargo test
+      - run: cargo build --target wasm32-unknown-unknown --release
+      - name: Check the tag is the manifest's version
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' manifest.toml | head -n1)
+          test "v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME, manifest $version"; exit 1; }
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp target/wasm32-unknown-unknown/release/trcode_plugin_markdown.wasm markdown.wasm
+          gh release create "$GITHUB_REF_NAME" markdown.wasm manifest.toml description.md --title "$GITHUB_REF_NAME" --notes "Markdown preview for TerminalCode"
+      - name: Index entry
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' manifest.toml | head -n1)
+          abi=$(sed -n 's/^abi = "\(.*\)"/\1/p' manifest.toml | head -n1)
+          sha=$(sha256sum markdown.wasm | cut -d' ' -f1)
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
+          {
+            echo '### Entry for `index.json`'
+            echo '```json'
+            echo "{ \"id\": \"markdown\", \"name\": \"Markdown Preview\", \"description\": \"A preview of the markdown file you edit, in a pane beside the editor\", \"version\": \"$version\", \"manifest\": \"$base/manifest.toml\", \"module\": \"$base/markdown.wasm\", \"sha256\": \"$sha\", \"abi\": \"$abi\" }"
+            echo '```'
+            echo 'Or: `python3 scripts/add_plugin.py Tim-kieboom/trcode-plugin-markdown` in trcode-plugins.'
+          } | tee -a "$GITHUB_STEP_SUMMARY"

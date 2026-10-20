@@ -1,0 +1,55 @@
+id = "markdown"
+name = "Markdown Preview"
+version = "0.1.0"
+abi = "1.5"
+wasm = "markdown.wasm"
+# The saved text of the markdown files you open, and opening the files its links lead to.
+capabilities = ["files.text", "editor.open"]
+file_types = ["md", "markdown"]
+# Parsing a document takes processor time: it gets a thread of its own.
+thread = "own"
+
+[[action]]
+id = "up"
+title = "Scroll Up"
+keys = "up"
+
+[[action]]
+id = "down"
+title = "Scroll Down"
+keys = "down"
+
+[[action]]
+id = "page_up"
+title = "Page Up"
+keys = "pageup"
+
+[[action]]
+id = "page_down"
+title = "Page Down"
+keys = "pagedown"
+
+[[action]]
+id = "top"
+title = "Top"
+keys = "home"
+
+[[action]]
+id = "bottom"
+title = "Bottom"
+keys = "end"
+
+[[action]]
+id = "next_link"
+title = "Next Link"
+keys = "tab"
+
+[[action]]
+id = "previous_link"
+title = "Previous Link"
+keys = "shift+tab"
+
+[[action]]
+id = "open_link"
+title = "Open Link"
+keys = "enter"
